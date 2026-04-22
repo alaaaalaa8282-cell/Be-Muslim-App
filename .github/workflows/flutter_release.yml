@@ -11,6 +11,8 @@ jobs:
   build-and-release:
     name: Build Signed APK & Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout repository
@@ -41,23 +43,27 @@ jobs:
       - name: Run tests
         run: flutter test || true
 
-      - name: Decode Keystore
+      - name: Generate Keystore
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/keystore.jks
+          keytool -genkey -v \
+            -keystore android/app/keystore.jks \
+            -alias bemuslim \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass bemuslim123 \
+            -keypass bemuslim123 \
+            -dname "CN=BeMulsim, O=BeMuslim, C=EG"
 
       - name: Build Signed Release APK
-        env:
-          KEYSTORE_PATH: keystore.jks
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
         run: |
-          flutter build apk --release \
-            --dart-define=KEYSTORE_PATH=$KEYSTORE_PATH \
+          ./android/gradlew assembleRelease \
+            -p android \
             -Pandroid.injected.signing.store.file=$PWD/android/app/keystore.jks \
-            -Pandroid.injected.signing.store.password=$STORE_PASSWORD \
-            -Pandroid.injected.signing.key.alias=$KEY_ALIAS \
-            -Pandroid.injected.signing.key.password=$KEY_PASSWORD
+            -Pandroid.injected.signing.store.password=bemuslim123 \
+            -Pandroid.injected.signing.key.alias=bemuslim \
+            -Pandroid.injected.signing.key.password=bemuslim123 \
+            --no-daemon
 
       - name: Rename APK
         run: |
@@ -65,7 +71,7 @@ jobs:
           if [[ "$VERSION" != v* ]]; then
             VERSION="build-${{ github.run_number }}"
           fi
-          cp build/app/outputs/flutter-apk/app-release.apk \
+          cp android/app/build/outputs/apk/release/app-release.apk \
              be-muslim-app-${VERSION}.apk
           echo "APK_NAME=be-muslim-app-${VERSION}.apk" >> $GITHUB_ENV
 
