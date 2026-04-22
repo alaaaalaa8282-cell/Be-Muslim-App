@@ -57,13 +57,11 @@ jobs:
 
       - name: Build Signed Release APK
         run: |
-          ./android/gradlew assembleRelease \
-            -p android \
+          flutter build apk --release \
             -Pandroid.injected.signing.store.file=$PWD/android/app/keystore.jks \
             -Pandroid.injected.signing.store.password=bemuslim123 \
             -Pandroid.injected.signing.key.alias=bemuslim \
-            -Pandroid.injected.signing.key.password=bemuslim123 \
-            --no-daemon
+            -Pandroid.injected.signing.key.password=bemuslim123
 
       - name: Rename APK
         run: |
@@ -71,7 +69,7 @@ jobs:
           if [[ "$VERSION" != v* ]]; then
             VERSION="build-${{ github.run_number }}"
           fi
-          cp android/app/build/outputs/apk/release/app-release.apk \
+          cp build/app/outputs/flutter-apk/app-release.apk \
              be-muslim-app-${VERSION}.apk
           echo "APK_NAME=be-muslim-app-${VERSION}.apk" >> $GITHUB_ENV
 
